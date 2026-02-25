@@ -175,6 +175,24 @@ namespace Kirurobo
         private bool _isBottommost = false;
 
         /// <summary>
+        /// Prevent window from being minimized (Win+D, Win+M, taskbar click)
+        /// </summary>
+        public bool preventMinimize
+        {
+            get { return _uniWinCore != null && _uniWinCore.GetPreventMinimize(); }
+            set { _uniWinCore?.SetPreventMinimize(value); }
+        }
+
+        /// <summary>
+        /// Hide window from taskbar and Alt+Tab (WS_EX_TOOLWINDOW)
+        /// </summary>
+        public bool isToolWindow
+        {
+            get { return _uniWinCore != null && _uniWinCore.GetToolWindow(); }
+            set { _uniWinCore?.SetToolWindow(value); }
+        }
+
+        /// <summary>
         /// Is this window minimized
         /// </summary>
         public bool isZoomed

@@ -127,6 +127,20 @@ namespace Kirurobo
             public static extern void SetBottommost([MarshalAs(UnmanagedType.U1)] bool bEnabled);
 
             [DllImport("LibUniWinC", CallingConvention = CallingConvention.Winapi)]
+            public static extern void SetPreventMinimize([MarshalAs(UnmanagedType.U1)] bool bEnabled);
+
+            [DllImport("LibUniWinC", CallingConvention = CallingConvention.Winapi)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsPreventMinimize();
+
+            [DllImport("LibUniWinC", CallingConvention = CallingConvention.Winapi)]
+            public static extern void SetToolWindow([MarshalAs(UnmanagedType.U1)] bool bEnabled);
+
+            [DllImport("LibUniWinC", CallingConvention = CallingConvention.Winapi)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsToolWindow();
+
+            [DllImport("LibUniWinC", CallingConvention = CallingConvention.Winapi)]
             public static extern void SetMaximized([MarshalAs(UnmanagedType.U1)] bool bZoomed);
             
             [DllImport("LibUniWinC", CallingConvention = CallingConvention.Winapi)]
@@ -807,6 +821,42 @@ namespace Kirurobo
         {
             LibUniWinC.SetKeyColor((UInt32)(color.b * 0x10000 + color.g * 0x100 + color.r));
             keyColor = color;
+        }
+
+        /// <summary>
+        /// Enable or disable minimize prevention (Windows only)
+        /// </summary>
+        /// <param name="enabled"></param>
+        public void SetPreventMinimize(bool enabled)
+        {
+            LibUniWinC.SetPreventMinimize(enabled);
+        }
+
+        /// <summary>
+        /// Check if minimize prevention is enabled
+        /// </summary>
+        /// <returns></returns>
+        public bool GetPreventMinimize()
+        {
+            return LibUniWinC.IsPreventMinimize();
+        }
+
+        /// <summary>
+        /// Set tool window style to hide from taskbar and Alt+Tab (Windows only)
+        /// </summary>
+        /// <param name="enabled"></param>
+        public void SetToolWindow(bool enabled)
+        {
+            LibUniWinC.SetToolWindow(enabled);
+        }
+
+        /// <summary>
+        /// Check if tool window style is active
+        /// </summary>
+        /// <returns></returns>
+        public bool GetToolWindow()
+        {
+            return LibUniWinC.IsToolWindow();
         }
         #endregion
 
