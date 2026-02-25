@@ -23,6 +23,7 @@ static BOOL bIsBottommost_ = FALSE;
 static BOOL bIsBackground_ = FALSE;
 static BOOL bIsFreePositioning_ = FALSE;				// macOSのみ有効。Windowsでは値の保持のみ
 static BOOL bIsClickThrough_ = FALSE;
+static BOOL bPreventMinimize_ = FALSE;
 static BOOL bAllowDropFile_ = FALSE;
 static COLORREF dwKeyColor_ = 0x00000000;				// AABBGGRR
 static TransparentType nTransparentType_ = TransparentType::Alpha;
@@ -877,6 +878,66 @@ void UNIWINC_API SetBottommost(const BOOL bBottommost) {
 }
 
 /// <summary>
+/// Enable or disable minimize prevention
+/// </summary>
+/// <param name="bEnabled"></param>
+void UNIWINC_API SetPreventMinimize(const BOOL bEnabled) {
+	bPreventMinimize_ = bEnabled;
+}
+
+/// <summary>
+/// Check if minimize prevention is enabled
+/// </summary>
+/// <returns></returns>
+BOOL UNIWINC_API IsPreventMinimize() {
+	return bPreventMinimize_;
+}
+
+/// <summary>
+/// Set or unset the tool window style (hides from taskbar and Alt+Tab)
+/// </summary>
+/// <param name="bEnabled"></param>
+void UNIWINC_API SetToolWindow(const BOOL bEnabled) {
+	if (!hTargetWnd_) return;
+
+	LONG_PTR exStyle = GetWindowLongPtr(hTargetWnd_, GWL_EXSTYLE);
+
+	if (bEnabled) {
+		exStyle |= WS_EX_TOOLWINDOW;
+		exStyle &= ~WS_EX_APPWINDOW;
+	} else {
+		exStyle &= ~WS_EX_TOOLWINDOW;
+		exStyle |= WS_EX_APPWINDOW;
+	}
+
+	SetWindowLongPtr(hTargetWnd_, GWL_EXSTYLE, exStyle);
+
+	// Windows requires a hide+show cycle to update the taskbar
+	ShowWindow(hTargetWnd_, SW_HIDE);
+	ShowWindow(hTargetWnd_, SW_SHOW);
+
+	// Re-apply bottommost after the show cycle (SW_SHOW can raise the window)
+	if (bIsBottommost_) {
+		SetWindowPos(
+			hTargetWnd_,
+			HWND_BOTTOM,
+			0, 0, 0, 0,
+			SWP_NOSIZE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOACTIVATE
+		);
+	}
+}
+
+/// <summary>
+/// Check if the tool window style is set
+/// </summary>
+/// <returns></returns>
+BOOL UNIWINC_API IsToolWindow() {
+	if (!hTargetWnd_) return FALSE;
+	LONG_PTR exStyle = GetWindowLongPtr(hTargetWnd_, GWL_EXSTYLE);
+	return (exStyle & WS_EX_TOOLWINDOW) != 0;
+}
+
+/// <summary>
 /// 壁紙化／解除
 /// </summary>
 /// <param name="bEnabled"></param>
@@ -1427,6 +1488,13 @@ LRESULT CALLBACK customWindowProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		}
 		break;
 
+	case WM_SYSCOMMAND:
+		// Block minimize when prevention is enabled
+		if (bPreventMinimize_ && (wParam & 0xFFF0) == SC_MINIMIZE) {
+			return 0;
+		}
+		break;
+
 	case WM_STYLECHANGED:	// スタイルの変化を検出
 		// Run callback
 		if (hWindowStyleChangedHandler_ != nullptr) {
@@ -1439,7 +1507,17 @@ LRESULT CALLBACK customWindowProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		{
 		case SIZE_RESTORED:		// 最小化でも最大化でもない通常のリサイズ
 		case SIZE_MAXIMIZED:
+			// Run callback
+			if (hWindowStyleChangedHandler_ != nullptr) {
+				hWindowStyleChangedHandler_((INT32)WindowStateEventType::Resized);
+			}
+			break;
 		case SIZE_MINIMIZED:
+			// Auto-restore if minimize prevention is active
+			// (safety net for Win+D which may bypass WM_SYSCOMMAND)
+			if (bPreventMinimize_) {
+				PostMessage(hWnd, WM_SYSCOMMAND, SC_RESTORE, 0);
+			}
 			// Run callback
 			if (hWindowStyleChangedHandler_ != nullptr) {
 				hWindowStyleChangedHandler_((INT32)WindowStateEventType::Resized);
