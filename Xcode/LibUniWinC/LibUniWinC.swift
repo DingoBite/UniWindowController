@@ -176,7 +176,7 @@ public class LibUniWinC {
     /// 操作対象となるウィンドウ。nilだと未指定
     private static var targetWindow: NSWindow? = nil
 
-    // Prevent infinite recursion caused by key-window notifications triggering makeKey() again.
+    /// 無限に再帰的にキーウィンドウ化されることを防ぐためのフラグ
     private static var isMakingKeyWindow: Bool = false
 
     /// 現在の設定を保持する構造体
